@@ -1,0 +1,172 @@
+%starter code for project 2: linear classification
+%pattern recognition, CSE583/EE552
+%Weina Ge, Aug 2008
+%Christopher Funk, Jan 2017
+
+
+close all;
+clear all;
+addpath export_fig
+% Choose which dataset to use (choices wine, wallpaper, taiji) :
+dataset = 'wallpaper';
+[train_featureVector, train_labels, test_featureVector, test_labels] = loadDataset(dataset);
+
+%% An example Linear Discriminant Classification
+
+
+%  Classification here is based on 2 Features (featureA and feature B).  
+%       You will be using all of the features but using 2 features makes it 
+%       easier to visualize than the multidimensional hyperplane
+
+featureA = 1;
+featureB = 7;
+feature_idx = [featureA,featureB];
+numGroups = length(countcats(test_labels));
+% Uncomment the following line to use all features
+%feature_idx = 1:size(train_featureVector,2);
+
+
+train_featureVector = train_featureVector(:,feature_idx);
+test_featureVector = test_featureVector(:,feature_idx);
+
+% Applying the Linear Discrimination
+test_obj = LinearDiscriminant(train_featureVector,train_labels);
+weights = test_obj.getLinearDiscriminantWeights();
+t = test_obj.linearDiscriminantClassify(test_featureVector, weights);
+accuracy = getAccuracy(t, test_labels);
+ 
+% getAccuracy function
+function accuracy = getAccuracy(t, test_labels)
+    [nrow, ~] = size(test_labels);
+    compare_result = t == test_labels;
+    accuracy = sum(compare_result) / nrow;
+end 
+
+
+
+
+%%  Classify the data and show statistics
+%    This example is using Matlab's inbuilt Classifier.
+%        You do not need to follow their data management style, this is
+%        to allow you to see the result and show some visualizations
+%        of the classification
+% Train the model (you will have to write this function)
+ MdlLinear = fitcdiscr(train_featureVector,train_labels);
+
+% Find the training accurracy (you will have to write testing 
+%      function (the function for finding the class labels from a set of
+%      features)
+train_pred = predict(MdlLinear,train_featureVector);
+% Create confusion matrix
+train_ConfMat = confusionmat(train_labels,train_pred)
+% Create classification matrix (rows should sum to 1)
+train_ClassMat = train_ConfMat./(meshgrid(countcats(train_labels))')
+% mean group accuracy and std
+train_acc = mean(diag(train_ClassMat))
+train_std = std(diag(train_ClassMat))
+
+% Find the testing accurracy (you will have to write testing 
+%      function (the function for finding the class labels from a set of
+%      features)
+test_pred = predict(MdlLinear,test_featureVector);
+% Create confusion matrix
+test_ConfMat = confusionmat(test_labels,test_pred)
+% Create classification matrix (rows should sum to 1)
+test_ClassMat = test_ConfMat./(meshgrid(countcats(test_labels))')
+% mean group accuracy and std
+test_acc = mean(diag(test_ClassMat))
+test_std = std(diag(test_ClassMat))
+
+
+
+
+%%  Display the linear discriminants and a set of features in two of the feature dimensions
+%      You will need to modify this function for to use your LDA
+%      classification boundries to work with your code.. Look at the code
+%      for more details
+figure(1)
+visualizeBoundaries(MdlLinear,test_featureVector,test_labels,1,2)
+title('{\bf Linear Discriminant Classification}')
+export_fig linear_discriminant_example -png -transparent
+%%  Display the classified regions of two of the feature dimensions  
+%      You will need to modify this function for with your testing 
+%      function (the function for finding the class labels from a set of
+%      features).
+figure(2)
+h = visualizeBoundariesFill(MdlLinear,test_featureVector,test_labels,1,2);
+title('{\bf Classification Area}')
+export_fig classification_fill_example -png -transparent
+
+
+
+
+
+
+%*****************************************************class******************
+classdef LinearDiscriminant
+    properties
+        x_inputVector;
+        t_targetVector;
+        t_targetVector_labels;
+        w_weightsVector;
+        n_rows_inputVector;
+        n_features;
+    end %end of properties
+    methods
+        function obj = LinearDiscriminant(inputsGiven, t_targetVector)
+            [obj.n_rows_inputVector, obj.n_features] = size(inputsGiven);
+            [obj.t_targetVector, ~, obj.t_targetVector_labels] = grp2idx(t_targetVector);
+            obj.x_inputVector = [ones(1,obj.n_rows_inputVector).', inputsGiven ];
+        end  % end of obj
+        
+        function w_weightsVector = getLinearDiscriminantWeights(obj)
+            
+            newMat = [obj.t_targetVector, obj.x_inputVector];
+            classes = unique(obj.t_targetVector);
+            nOfClasses = length(classes);
+            obj.w_weightsVector = zeros(1 + obj.n_features, nOfClasses);
+
+            for class_index = 1:nOfClasses
+                % Selecting matrices with given class
+                x_inputs_perClass = newMat(newMat(:,1) == classes(class_index) , :);
+                % Selecting matrices which doenst belong to current class.
+                % and setting corresponding class to 0.
+                temp = newMat(newMat(:,1) ~= classes(class_index) , :);
+                temp( : , 1) = 0;
+                x_inputs_perClass = [x_inputs_perClass;temp];
+                t_class = x_inputs_perClass( :, 1);
+                x_inputs_perClass( :, 1) = [];
+                obj.w_weightsVector( : , class_index) = obj.getWeights(x_inputs_perClass, t_class);
+            end % end of for
+            w_weightsVector = obj.w_weightsVector;
+        end  % end of getLinearDiscriminantWeights
+        
+        function t = linearDiscriminantClassify(obj, xTest, weights)
+            [nRows,~] = size(xTest);
+            xTest = [ones(1,nRows).', xTest];
+            t = xTest * weights;
+            [~,t] = max(t.');
+            t = t.';
+            t = obj.t_targetVector_labels(t) ;
+        end % linearDiscriminantClassify
+            
+            
+            
+        function w_weightsVector = getWeights(obj, xInputs, t)
+
+            % Calculating weight matrix.
+            A = (xInputs.') * (xInputs);
+            B = xInputs.' * t;
+            % Solving AX = B;
+            w_weightsVector = mldivide(A,B);
+            
+        end % end of getWeights
+        
+        function regressionLine = getRegressionLine(obj, testInputsGiven, w_weightsVector)
+            testInputVectors = obj.create_x_inputVector(testInputsGiven, obj.polyOrder);
+            regressionLine = ((testInputVectors)* (w_weightsVector)).';
+        end % end of getRegressionLine
+    end % end of methods
+end
+
+

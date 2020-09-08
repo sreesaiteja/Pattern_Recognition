@@ -1,0 +1,42 @@
+train_ConfMat_avg =
+
+    1.8200   16.1800
+    1.3400   33.6600
+
+
+train_ClassMat_avg =
+
+    0.1011    0.8989
+    0.0383    0.9617
+
+
+test_ConfMat_avg =
+
+    1.3800   15.6200
+    1.9600   32.0400
+
+
+test_ClassMat_avg =
+
+    0.0812    0.9188
+    0.0576    0.9424
+
+
+train_acc_avg =
+
+    1.0628
+
+
+train_std_avg =
+
+     0
+
+
+test_acc_avg =
+
+    0.5118
+
+
+test_std_avg =
+
+    0.6089

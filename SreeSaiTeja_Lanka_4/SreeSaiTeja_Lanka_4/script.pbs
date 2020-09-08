@@ -1,0 +1,25 @@
+#!/bin/bash -login
+###==== PBS RESOURCES ====###
+### Set to run on CyberLAMP
+#PBS -A cyberlamp_class -l qos=cl_class
+### Define the special resource queue within CyberLAMP for accessing single-GPU nodes
+##PBS -l qos=cl_gpu
+### Join stdout and stderr into a single logfile
+#PBS -j oe
+### Set maximum walltime
+#PBS -l walltime=09:00:00
+### Set number of nodes and cores per node; reserve GPU(s) and set compute mode
+#PBS -l nodes=1:ppn=1:gpus=1:shared
+### Allocate total memory for the job
+#PBS -l mem=4gb
+## tells PBS to send an email on abort, begin and/or exit
+#PBS -m abe
+## send email to this address
+#PBS -M szl577@psu.edu
+
+
+
+###==== SCRIPT BODY ====###
+module load matlab
+cd /storage/home/s/szl577/work/conda/Project4_PRML
+matlab -r main_matlab_skinnynetwork

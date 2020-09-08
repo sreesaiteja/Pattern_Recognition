@@ -1,0 +1,1 @@
+run start.m and you should see three figures that look like the ones in the sampleoutput directory
